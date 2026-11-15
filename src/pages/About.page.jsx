@@ -9,7 +9,7 @@ import {
 import Reveal from "../common/Reveal";
 import { teacherService } from "../services/erpDb";
 import about1 from "../assets/about1.jpg";
-import about2 from "../assets/about2.jpg";
+import about2 from "../assets/about2.png";
 import join_us from "../assets/join_us.jpg";
 
 /**
