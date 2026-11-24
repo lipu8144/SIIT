@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { FaSave, FaGlobe, FaChartBar, FaTachometerAlt, FaAddressBook } from "react-icons/fa";
 import { siteSettingsService, siteConfigService } from "../../services/db";
 import Reveal from "../../common/Reveal";
+import { errText } from "../../lib/errors";
 
 /**
  * SIIT — Admin: Site Settings (manageable stats)
@@ -22,23 +23,38 @@ const AdminSettings = () => {
   const [settings, setSettings] = useState([]);
   const [config, setConfig] = useState([]);
   const [saving, setSaving] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadErrors, setLoadErrors] = useState([]);
 
   useEffect(() => {
-    siteSettingsService.list().then(setSettings);
-    siteConfigService.list().then(setConfig);
+    let alive = true;
+    Promise.allSettled([siteSettingsService.list(), siteConfigService.listForAdmin()]).then(([stats, cfg]) => {
+      if (!alive) return;
+      const problems = [];
+      if (stats.status === "fulfilled") setSettings(stats.value);
+      else { console.error(stats.reason); problems.push(`Could not load the counters. ${errText(stats.reason, "Error")} (needs migration 0004).`); }
+      if (cfg.status === "fulfilled") setConfig(cfg.value);
+      else { console.error(cfg.reason); problems.push(`Could not load the contact details. ${errText(cfg.reason, "Error")} (needs migration 0006).`); }
+      setLoadErrors(problems);
+      setLoading(false);
+    });
+    return () => { alive = false; };
   }, []);
 
   const handleConfigChange = (key, value) => {
     setConfig((prev) => prev.map((c) => (c.key === key ? { ...c, value } : c)));
   };
 
+  const configRows = () => config.map((c) => ({ key: c.key, value: c.value, label: c.label, kind: c.kind }));
+
   const handleSaveConfig = async () => {
     setSaving("config");
     try {
-      await siteConfigService.saveAll(config.map((c) => ({ key: c.key, value: c.value })));
+      await siteConfigService.saveAll(configRows());
       toast.success("Contact info updated — live on the site now");
-    } catch {
-      toast.error("Failed to save contact info");
+    } catch (err) {
+      console.error(err);
+      toast.error(errText(err, "Failed to save contact info"));
     } finally {
       setSaving(null);
     }
@@ -59,22 +75,26 @@ const AdminSettings = () => {
         suffix: item.suffix,
       });
       toast.success(`"${item.label}" updated`);
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      console.error(err);
+      toast.error(errText(err));
     } finally {
       setSaving(null);
     }
   };
 
+  // Saves the counters AND the contact details, so the top button really means "all"
   const handleSaveAll = async () => {
     setSaving("all");
     try {
       await Promise.all(settings.map((s) =>
         siteSettingsService.update(s.id, { label: s.label, value: Number(s.value) || 0, suffix: s.suffix })
       ));
+      if (config.length) await siteConfigService.saveAll(configRows());
       toast.success("All settings saved");
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      console.error(err);
+      toast.error(errText(err));
     } finally {
       setSaving(null);
     }
@@ -91,6 +111,15 @@ const AdminSettings = () => {
           <FaSave size={12} /> {saving === "all" ? "Saving…" : "Save All"}
         </button>
       </div>
+
+      {loadErrors.length > 0 && (
+        <div className="mb-6 rounded-xl border border-buttons_1/30 bg-buttons_1/5 p-4 text-sm text-buttons_1">
+          <p className="mb-1 font-semibold">This page could not load everything:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            {loadErrors.map((m) => <li key={m}>{m}</li>)}
+          </ul>
+        </div>
+      )}
 
       {/* ── Contact & Social (footer + contact page) ── */}
       <Reveal className="mb-6 overflow-hidden rounded-2xl bg-white">
@@ -130,6 +159,8 @@ const AdminSettings = () => {
         </p>
       </Reveal>
 
+      {groups.map((group) => {
+        const meta = GROUP_META[group];
         const items = settings.filter((s) => s.group === group);
         if (!items.length) return null;
 
@@ -177,6 +208,12 @@ const AdminSettings = () => {
           </Reveal>
         );
       })}
+
+      {!loading && settings.length === 0 && loadErrors.length === 0 && (
+        <p className="mb-6 rounded-xl bg-white p-5 text-center text-sm text-dark-grey">
+          No counters found. Run the SQL migration <code>0004_site_settings.sql</code> to create them.
+        </p>
+      )}
 
       <p className="text-xs text-dark-grey">
         Changes here update the public website immediately within this session.

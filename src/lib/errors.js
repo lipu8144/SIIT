@@ -13,6 +13,8 @@ export const errText = (err, fallback = "Failed to save") => {
     return `${fallback}: the database is missing a column. Run the latest SQL migrations. (${m})`;
   if (/row-level security|permission denied/i.test(m))
     return `${fallback}: your login is not allowed to do this. It needs an admin role.`;
+  if (/json object requested|multiple \(or no\) rows/i.test(m))
+    return `${fallback}: nothing was updated. The row is missing, or your login is not allowed to change it (it needs an admin role).`;
   if (/duplicate key|already exists/i.test(m))
     return `${fallback}: this already exists (duplicate value).`;
   if (/violates foreign key/i.test(m))

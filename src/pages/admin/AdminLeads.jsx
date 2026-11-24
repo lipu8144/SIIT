@@ -88,12 +88,16 @@ const AdminLeads = () => {
   };
 
   const cols = [
-    { key: "name",            label: "Name",    render: (v) => <span className="font-medium">{v}</span> },
-    { key: "phone",           label: "Phone",   render: (v) => (
+    { key: "name",            label: "Name",    render: (v, row) => (
+        <div>
+          <span className="font-medium">{v || "—"}</span>
+          {row.email && <div className="text-xs text-dark-grey">{row.email}</div>}
+        </div>)},
+    { key: "phone",           label: "Phone",   render: (v) => v ? (
         <a href={`https://wa.me/91${v}`} target="_blank" rel="noreferrer"
           className="inline-flex items-center gap-1 text-[#128C3E] hover:underline">
           <FaWhatsapp size={12} /> {v}
-        </a>)},
+        </a>) : <span className="text-dark-grey">—</span> },
     { key: "course_interest", label: "Course"  },
     { key: "source",          label: "Source"  },
     { key: "status",          label: "Status",  render: (v, row) => (
@@ -104,7 +108,7 @@ const AdminLeads = () => {
         >
           {PIPELINE.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>)},
-    { key: "remarks",         label: "Remarks", render: (v) => <span className="line-clamp-1 max-w-[140px] text-xs">{v || "—"}</span> },
+    { key: "remarks",         label: "Remarks", render: (v) => <span title={v || ""} className="line-clamp-1 max-w-[140px] text-xs">{v || "—"}</span> },
   ];
 
   const cur = editing || BLANK;

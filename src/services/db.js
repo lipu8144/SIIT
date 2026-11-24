@@ -328,12 +328,25 @@ export const siteConfigService = {
     return row ? clone(row) : { key, value };
   },
 
-  /** Bulk update — pass an array of { key, value } */
+  /** For the admin page: every known setting, even one whose row is missing in the database. */
+  async listForAdmin() {
+    const rows = await this.list();
+    const have = new Set(rows.map((r) => r.key));
+    const merged = [...rows, ...SITE_CONFIG_SEED.filter((d) => !have.has(d.key)).map((d) => ({ ...d }))];
+    const order = (k) => { const i = SITE_CONFIG_SEED.findIndex((d) => d.key === k); return i === -1 ? 999 : i; };
+    return merged.sort((x, y) => order(x.key) - order(y.key));
+  },
+
+  /** Save many settings. Creates a missing row instead of silently doing nothing, and
+      refuses to say "saved" unless the database confirms every row. */
   async saveAll(items) {
     if (isSupabaseConfigured) {
-      await Promise.all(items.map((i) =>
-        supabase.from("site_config").update({ value: i.value }).eq("key", i.key)
-      ));
+      const payload = items.map((i) => ({ key: i.key, value: i.value ?? "", label: i.label ?? "", kind: i.kind ?? "text" }));
+      const { data, error } = await supabase.from("site_config").upsert(payload, { onConflict: "key" }).select();
+      if (error) throw error;
+      if (!data || data.length < payload.length) {
+        throw new Error(`Only ${data?.length || 0} of ${payload.length} settings were saved. The database refused the rest. Your login probably needs an admin role.`);
+      }
       return true;
     }
     items.forEach((i) => {

@@ -3,6 +3,7 @@
  * ────────────────────────────────────────────────────────
  * Leads CRM, AI quiz, analytics, SEO meta.
  */
+import { uuid } from "../lib/uuid";
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
 import { leads as SEED_LEADS, quizSubmissions as SEED_QUIZ, analyticsSnapshot, seoMeta as SEED_SEO } from "../data/growthSeed";
 import { siteSettingsService } from "./db";
@@ -27,10 +28,13 @@ export const leadService = {
   },
   async create(row) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("leads").insert(row).select().single();
+      // NO ".select()" on purpose. A visitor may INSERT a lead but may not READ leads, and asking
+      // for the new row back (RETURNING) needs read permission, so Supabase would refuse it.
+      const id = uuid();
+      const { error } = await supabase.from("leads").insert({ ...row, id });
       if (error) throw error;
       siteSettingsService.increment("enquiries").catch(() => {});
-      return data;
+      return { ...row, id, created_at: new Date().toISOString() };
     }
     await wait(200);
     const n = { ...row, id: `l-${Date.now()}`, created_at: new Date().toISOString() };
@@ -67,9 +71,11 @@ export const quizService = {
     const recommended = recommend(answers);
     const row = { answers, recommended_courses: recommended, converted: false, created_at: new Date().toISOString() };
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("quiz_submissions").insert(row).select().single();
+      // Same reason as leads: visitors can insert but not read, so do not ask for the row back.
+      const id = uuid();
+      const { error } = await supabase.from("quiz_submissions").insert({ ...row, id });
       if (error) throw error;
-      return { ...data, recommended_courses: recommended };
+      return { ...row, id, recommended_courses: recommended };
     }
     await wait(300);
     const n = { id: `q-${Date.now()}`, ...row };

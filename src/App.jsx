@@ -8,6 +8,7 @@ import { lookInSession }    from "./common/session";
 import { AuthProvider, RequireRole } from "./context/AuthProvider";
 import AnnouncementBar from "./components/layout/AnnouncementBar";
 import Popup           from "./components/layout/Popup";
+import EnrolePopup      from "./components/EnrolePopup";
 import { notificationService } from "./services/db";
 
 /* ── Public ──────────────────────────────────────────────── */
@@ -149,6 +150,8 @@ function App() {
         </Suspense>
         <Footer />
         <Popup />
+        {/* The enquiry form opens from Courses AND Events, so it lives here, once. */}
+        {showPopup && <EnrolePopup />}
       </AuthProvider>
     </UserContext.Provider>
   );

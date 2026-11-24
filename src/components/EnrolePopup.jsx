@@ -37,9 +37,9 @@ const EnrolePopup = () => {
       });
       toast.success("Thanks! Our team will call you soon.");
       close();
-    } catch (_) {
-      toast.success("Thanks! Our team will call you soon.");
-      close();
+    } catch (err) {
+      console.error("Enrol request not saved:", err);
+      toast.error("Sorry, we could not save your request. Please call or WhatsApp us.");
     } finally {
       setBusy(false);
     }
@@ -50,7 +50,7 @@ const EnrolePopup = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex overflow-y-auto bg-black/50 p-4"
       onClick={close}
       role="dialog"
       aria-modal="true"
@@ -60,7 +60,7 @@ const EnrolePopup = () => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="relative m-auto w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
         <button
           onClick={close}

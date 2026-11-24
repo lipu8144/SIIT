@@ -30,13 +30,14 @@ export const Contact = () => {
   const form = useRef();
   const [sending, setSending] = useState(false);
 
-  const sendEmail = (e) => {
+  const sendEmail = async (e) => {
     e.preventDefault();
     setSending(true);
 
-    // Capture the enquiry as a lead in the database (fire-and-forget)
+    // Save the enquiry as a lead (shows in Admin → Leads CRM). We wait for the result so the
+    // visitor is never told "received" when it was not saved.
     const fd = new FormData(form.current);
-    leadService.create({
+    const leadSaved = await leadService.create({
       name: fd.get("user_name") || "",
       phone: fd.get("user_phone") || "",
       email: fd.get("user_email") || "",
@@ -44,7 +45,7 @@ export const Contact = () => {
       remarks: fd.get("message") || "",
       status: "new",
       source: "contact-form",
-    }).catch(() => {});
+    }).then(() => true).catch((err) => { console.error("Enquiry not saved:", err); return false; });
 
     // EmailJS is optional — configured via env vars. If not set, the lead
     // is still captured in the database above, so nothing is lost.
@@ -53,8 +54,12 @@ export const Contact = () => {
     const key = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
     if (!svc || !tpl || !key) {
-      toast.success("Thanks! We've received your enquiry and will be in touch.");
-      form.current.reset();
+      if (leadSaved) {
+        toast.success("Thanks! We've received your enquiry and will be in touch.");
+        form.current.reset();
+      } else {
+        toast.error("Sorry, we could not send your message just now. Please call or WhatsApp us.");
+      }
       setSending(false);
       return;
     }
@@ -69,7 +74,12 @@ export const Contact = () => {
         },
         (error) => {
           console.log("FAILED...", error?.text);
-          toast.error("Something went wrong ⚠️");
+          if (leadSaved) {
+            toast.success("Thanks! We've received your enquiry and will be in touch.");
+            form.current.reset();
+          } else {
+            toast.error("Something went wrong ⚠️ Please call or WhatsApp us.");
+          }
           setSending(false);
         }
       );

@@ -16,7 +16,6 @@ import {
 
 import Loader from "../components/Loader";
 import { UserContext } from "../App";
-import EnrolePopup from "../components/EnrolePopup";
 import { courseManagementService } from "../services/erpDb";
 
 /**
@@ -51,7 +50,7 @@ export const Courses = () => {
   const [activeCat, setActiveCat] = useState("All Courses");
   const [selected, setSelected] = useState(null);
 
-  const { setShowPopup, showPopup } = useContext(UserContext);
+  const { setShowPopup } = useContext(UserContext);
 
   useEffect(() => {
     (async () => {
@@ -206,7 +205,7 @@ export const Courses = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelected(null)}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+            className="fixed inset-0 z-50 flex overflow-y-auto bg-black/45 p-4"
           >
             <motion.div
               initial={{ scale: 0.92, y: 20 }}
@@ -214,7 +213,7 @@ export const Courses = () => {
               exit={{ scale: 0.92, y: 20 }}
               transition={{ type: "spring", stiffness: 260, damping: 24 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md overflow-hidden rounded-2xl bg-white"
+              className="m-auto w-full max-w-md overflow-hidden rounded-2xl bg-white"
             >
               {(() => {
                 const { tint, Icon } = catMeta(selected.category);
@@ -280,7 +279,6 @@ export const Courses = () => {
         )}
       </AnimatePresence>
 
-      {showPopup && <EnrolePopup />}
     </>
   );
 };

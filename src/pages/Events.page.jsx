@@ -41,7 +41,10 @@ const CountUnit = ({ value, label }) => (
   </div>
 );
 
-const EventCard = ({ ev, past }) => (
+const EventCard = ({ ev, past }) => {
+  // must be read HERE: this card is its own component, so it cannot see the one in Events
+  const { setShowPopup } = useContext(UserContext);
+  return (
   <Reveal className={`rounded-2xl bg-white p-4 ${past ? "opacity-80" : ""}`}>
     <span
       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -65,10 +68,10 @@ const EventCard = ({ ev, past }) => (
     </div>
     {!past && ev.registration_open && <button onClick={() => setShowPopup(true)} className="btn-dark w-full text-sm">Register</button>}
   </Reveal>
-);
+  );
+};
 
 export const Events = () => {
-  const { setShowPopup } = useContext(UserContext);
   useEffect(() => {
     document.title = "SIIT | Events";
   }, []);
